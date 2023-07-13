@@ -5,7 +5,7 @@ ACTION_TEXT = "Actions: \n1. Attack \n2. Defend \n3. Use skill \n4. Quit/Restart
 # creating characters
 CHARACTERS = ["archer","wizard","knight","werewolf"]
 CHAR_ATTR = {   
-    "archer": [10, 1, 3,10,""],   # [ap, dp, sp, image]
+    "archer": [10, 1, 3,10,""],   # [ap, dp, sp,critical_chance,image]
     "mage": [15, 2, 2,20,""],
     "knight": [12, 3, 1,25,""],
     "werewolf": [13, 2, 2,30,""]
@@ -47,47 +47,71 @@ def test():
 
 # main game flow
 print("You can choose two characters to fight from these: archer,wizard,knight and werewolf")
-
-choice1 = input("choose your first character to fight: ")
-player1 = PlayerCharacter(choice1)
-choice2 = input("choose another one: ")
-player2 = PlayerCharacter(choice2)
-player_team = [player1,player2]
-
-enemy_team = list(set(CHARACTERS) - {choice1, choice2})
-enemy1 = Character(enemy_team[0])
-enemy2 = Character(enemy_team[1])
-
-# chosing characters
-print(f"You chose {player1.jobClass} and {player2.jobClass}. The enemy characters are {enemy1.jobClass} and {enemy2.jobClass}.")
-first_fighter = input(f"You will fight with the {enemy1.jobClass} first, choose your first character to fight, 1/2 : ")
-if first_fighter == "2":
-    player_team.reverse()
-
 not_finished = True
 
 while not_finished:
-    fighter = player_team[0]
-    enemy_fighter = enemy_team[0]
-    #options
-    print(ACTION_TEXT)
-    action = input("Action: ")
+    # chosing characters
+    choice1 = input("Choose your first character to fight: ")
+    player1 = PlayerCharacter(choice1)
+    choice2 = input("Choose another one: ")
+    player2 = PlayerCharacter(choice2)
+    player_team = [player1, player2]
 
-    if action == "1":
-        # 1.attack(2) and 2.attack(2) # both attacks, depend on the sp
-        print("attacked")
-    elif action == "2":
-        # 1.defend() and 2.attack(2) # player defend, dont know if it should depends on sp
-        print("defended") 
-    elif action == "3":
-        fighter.useSkill(test)
-    if action == "4":
-        # will ask whether user will quit or restart
-        not_finished = False
+    remaining_options = list(set(CHARACTERS) - {choice1, choice2})
+    enemy1 = Character(enemy_team[0])
+    enemy2 = Character(enemy_team[1])
+    enemy_team = [enemy1,enemy2]
 
-    # if fighter or enemy fighter hp drops to 0, removes it from the list
+    print(f"You chose {player1.jobClass} and {player2.jobClass}. The enemy characters are {enemy1.jobClass} and {enemy2.jobClass}.")
+    first_fighter = input(f"You will fight with the {enemy1.jobClass} first, choose your first character to fight, 1/2 : ")
+    if first_fighter == "2":
+        player_team.reverse()
 
-    if len(player_team) == 0:
-        print("You lose")
-    elif len(enemy_team) == 0:
-        print("You win")
+    while True:
+        player_fighter = player_team[0]
+        enemy_fighter = enemy_team[0]
+        #options
+        print(ACTION_TEXT)
+        action = input("Action: ")
+
+        if action == "1":
+            if player_fighter.sp > enemy_fighter:
+                player_fighter.attack(enemy_fighter)
+                # Check the opponent is still alive after the attack
+                if enemy_fighter.hp > 0:
+                    enemy_fighter.attack(player_fighter)
+            else:
+                enemy_fighter.attack(player_fighter)
+                if player_fighter.hp > 0:
+                    player_fighter.attack(enemy_fighter)
+        elif action == "2":
+            player_fighter.defend()
+            enemy_fighter.attack(player_fighter)
+        elif action == "3":
+            if player_fighter.sp > enemy_fighter:
+                player_fighter.useSkill(test)
+                enemy_fighter.attack(player_fighter)
+            else:
+                enemy_fighter.attack(player_fighter)
+                player_fighter.useSkill(test)
+        elif action == "4":
+                choice = input("Do you want to quit (q) or restart (r)? ")
+                if choice.lower() == "q":
+                    not_finished = False
+                    break
+                elif choice.lower() == "r":
+                    print("Restarting...")
+                    break
+
+        # If fighter or enemy fighter's HP drops to 0 and remove them from the list
+        if player_fighter.hp <= 0:
+            player_team.remove(player_fighter)
+            print(f"{player_fighter.jobClass} is defeated!")
+        if enemy_fighter.hp <= 0:
+            enemy_team.remove(enemy_fighter)
+            print(f"{enemy_fighter.jobClass} is defeated!")
+
+        if len(player_team) == 0:
+            print("You lose")
+        elif len(enemy_team) == 0:
+            print("You win")
