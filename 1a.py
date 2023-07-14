@@ -9,7 +9,7 @@ def shield_bash(target):  # knight
     return [15,"Shield Bash"]
 def claw_swipe(target):  # werewolf
     return [12,"Claw Swipe"]
-
+# defensive skills 
 def evasion(user):  # archer
     user.dp += 5
     print(f"Archer used Evasion and increased their DP by 5.")
@@ -31,7 +31,7 @@ CHAR_ATTR = {
     "knight": [12, 3, 1, 25, [shield_bash, shield_of_valor], ""],
     "werewolf": [13, 2, 2, 30, [claw_swipe, regen], ""]
 }
-
+# Enemy characters can only have these
 class Character:
     def __init__(self,jobClass):
         self.hp = 150 # +50 hp handicap for the enemy for not being able to defend or use skill
@@ -54,7 +54,7 @@ class Character:
 
     def receive_damage(self, damage):
         self.hp -= damage
-# inherit and add extra actions for player
+# inherit and add extra actions for Player characters
 class PlayerCharacter(Character):
     def __init__(self,jobClass):
         super().__init__(jobClass)
@@ -66,20 +66,20 @@ class PlayerCharacter(Character):
         print(f"{self.jobClass.capitalize()} raised its dp by 8")
 
     def use_skill(self,skill_type,target):
-        if skill_type == 0:
+        if skill_type == 0: # offensive
             self.mp -= 1
             damage,skill_name = self.skill[0](target)
             target.receive_damage(damage)
             print(f"{self.jobClass.capitalize()} used {skill_name} and dealt {damage} damage")
-        else:
-            self.mp -= 2
+        else: # defensive
+            self.mp -= 2 # will only have 2 chance to use to make the game more balenced
             self.skill[1](self)
 
 # main game flow
 print("You can choose two characters to fight from these: archer, wizard, knight and werewolf")
 not_finished = True
 round_number = 1
-
+# all these inputs and creating characters are wrapped in while loop so that the game can restart from this point
 while not_finished:
     # chosing characters
     choice1 = input("Choose your first character to fight: ")
@@ -113,7 +113,7 @@ while not_finished:
         print(f"Player | {player_fighter.jobClass:<10} | {player_fighter.hp:<6} | {player_fighter.mp:<6} | {player_fighter.ap:<6} | {player_fighter.dp:<6}")
         print(f"Enemy  | {enemy_fighter.jobClass:<10} | {enemy_fighter.hp:<6} | -      | {enemy_fighter.ap:<6} | {enemy_fighter.dp:<6}")
         print()
-
+        # options
         print(f"Actions: 1)Attack 2)Defend 3)Use skill 4)Quit/Restart")
         action = input("Action: ")
         # attack
@@ -152,8 +152,7 @@ while not_finished:
                     # resetting the round number to 1
                     turn = 1
                     break
-
-        # If fighter or enemy fighter's HP drops to 0, remove them from the list
+        # ff fighter or enemy fighter's HP drops to 0, remove them from the list
         if player_fighter.hp <= 0:
             player_team.remove(player_fighter)
             if len(player_team) == 1:
@@ -162,7 +161,7 @@ while not_finished:
             enemy_team.remove(enemy_fighter)
             if len(enemy_team) == 1:
                 print(f"Enemy {enemy_fighter.jobClass} is defeated! Second fighter {enemy_team[0].jobClass} came in")
-
+        # team with 0 fighter lose
         if len(player_team) == 0:
             print("You lost")
             not_finished = False
