@@ -17,6 +17,7 @@ class Character:
         self.jobClass = jobClass
         
     def attack(self, target):
+        # adding extra damage according to each character's critacal chance
         chance = random.randint(1, 100)
         critical_damage = 0
         if chance <= self.crital_chance:
@@ -25,6 +26,7 @@ class Character:
         target.receive_damage(damage)
 
     def receive_damage(self, damage):
+        # dp is always lower than than damage in any circumstances
         self.hp -= damage - self.dp
 
 class PlayerCharacter(Character):
@@ -36,17 +38,19 @@ class PlayerCharacter(Character):
     def defend(self):
         self.dp += 8 #this should only last for 1 round
 
-    def useSkill(self,skill):
-        skill()
+    def useSkill(self,skill,target):
+        self.mp -= 1
+        damage = skill(target)
+        target.receive_damage(damage)
 
 # skills
-def test():
-    print("skill used")
+def pierce_shot(target):
+    return 20 + target.dp
 
 # main game flow
-print("You can choose two characters to fight from these: archer,wizard,knight and werewolf")
+print("You can choose two characters to fight from these: archer, wizard, knight and werewolf")
 not_finished = True
-turn = 1
+round = 1
 
 while not_finished:
     # chosing characters
@@ -55,32 +59,38 @@ while not_finished:
     choice2 = input("Choose another one: ")
     player2 = PlayerCharacter(choice2)
     player_team = [player1, player2]
-
+    # creating enemy character from remaing options
     remaining_options = list(set(CHARACTERS) - {choice1, choice2})
     enemy1 = Character(remaining_options[0])
     enemy2 = Character(remaining_options[1])
     enemy_team = [enemy1,enemy2]
 
-    print(f"You chose {player1.jobClass} and {player2.jobClass}. The enemy characters are {enemy1.jobClass} and {enemy2.jobClass}.")
-    print()
+    print(f"You chose {player1.jobClass} and {player2.jobClass}.\nThe enemy characters are {enemy1.jobClass} and {enemy2.jobClass}.")
     # letting the player choose which fighter to fight first
-    first_fighter = input(f"You will fight with the {enemy1.jobClass} first, choose your first character to fight, 1/2 : ")
+    first_fighter = input(f"You will fight with the {enemy1.jobClass} first,\nchoose your first character to fight, 1){player1.jobClass} or 2){player2.jobClass} : ")
+    print()
     if first_fighter == "2":
         player_team.reverse()
 
     while True:
         player_fighter = player_team[0]
         enemy_fighter = enemy_team[0]
-        print(f"Turn: {turn}")
-        turn += 1
-        #options
-        print(f"Player - {player_fighter.hp}hp {player_fighter.mp}mp")
-        print(f"Enemy - {enemy_fighter.hp}hp")
-        print(f"Actions: 1) Attack 2) Defend 3) Use skill 4) Quit/Restart")
+        print(f"Round: {round}*")
+        round += 1
+        print()
+        # showing stats
+        print("       |  Fighter   |   HP   |   MP   |   AP   |   DP   ")
+        print("        ------------------------------------------------")
+        print(f"Player | {player_fighter.jobClass:<10} | {player_fighter.hp:<6} | {player_fighter.mp:<6} | {player_fighter.ap:<6} | {player_fighter.dp:<6}")
+        print(f"Enemy  | {enemy_fighter.jobClass:<10} | {enemy_fighter.hp:<6} | -      | {enemy_fighter.ap:<6} | {enemy_fighter.dp:<6}")
+        print()
+
+        print(f"Actions: 1)Attack 2)Defend 3)Use skill 4)Quit/Restart")
         action = input("Action: ")
 
         if action == "1":
-            if player_fighter.sp > enemy_fighter.sp:
+            # speed point will decide who attack first (player attacks first if they have same sp)
+            if player_fighter.sp >= enemy_fighter.sp:
                 player_fighter.attack(enemy_fighter)
                 # Check the opponent is still alive after the attack
                 if enemy_fighter.hp > 0:
@@ -92,13 +102,14 @@ while not_finished:
         elif action == "2":
             player_fighter.defend()
             enemy_fighter.attack(player_fighter)
+        # skill action
         elif action == "3":
-            if player_fighter.sp > enemy_fighter.sp:
-                player_fighter.useSkill(test)
+            if player_fighter.sp >= enemy_fighter.sp:
+                player_fighter.useSkill(pierce_shot,enemy_fighter)
                 enemy_fighter.attack(player_fighter)
             else:
                 enemy_fighter.attack(player_fighter)
-                player_fighter.useSkill(test)
+                player_fighter.useSkill(pierce_shot,enemy_fighter)
         elif action == "4":
                 choice = input("Do you want to quit (q) or restart (r)? ")
                 if choice.lower() == "q":
@@ -126,7 +137,7 @@ while not_finished:
             break
         elif len(enemy_team) == 0:
             print("Congratulation, You won!!")
-            not_finished == False
+            not_finished = False
             break
-
+        # line after each round
         print("-"*20)
