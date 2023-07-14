@@ -1,47 +1,32 @@
 import random
 
-# skills
-def pierce_shot(target):  # archer offensive skill
-    damage = 20 + target.dp
-    target.receive_damage(damage)
-    print(f"Archer used Pierce Shot and dealt {damage} damage.")
+# offensive skills
+def pierce_shot(target):  # archer 
+    return [20 + target.dp,"Evasion"]
+def fireball(target):  # wizard 
+    return [25,"Fireball"]
+def shield_bash(target):  # knight
+    return [15,"Shield Bash"]
+def claw_swipe(target):  # werewolf
+    return [12,"Claw Swipe"]
 
-def evasion(user):  # archer defensive skill
+def evasion(user):  # archer
     user.dp += 5
     print(f"Archer used Evasion and increased their DP by 5.")
-
-def fireball(target):  # wizard offensive skill
-    damage = random.randint(15, 25)
-    target.receive_damage(damage)
-    print(f"Wizard used Fireball and dealt {damage} damage.")
-
-def ice_barrier(user):  # wizard defensive skill
+def ice_barrier(user):  # wizard 
     user.dp += 5
     print(f"Wizard used Ice Barrier and increased their DP by 5.")
-
-def shield_bash(target):  # knight offensive skill
-    damage = random.randint(10, 15)
-    target.receive_damage(damage)
-    print(f"Knight used Shield Bash and dealt {damage} damage.")
-
-def shield_of_valor(user):  # knight defensive skill
+def shield_of_valor(user):  # knight 
     user.dp += 10
     print(f"Knight used Shield of Valor and increased their DP by 10.")
-
-def claw_swipe(target):  # werewolf offensive skill
-    damage = random.randint(8, 12)
-    target.receive_damage(damage)
-    print(f"Werewolf used Claw Swipe and dealt {damage} damage.")
-
-def regen(user):  # werewolf healing skill
-    heal_amount = random.randint(10, 15)
-    user.hp += heal_amount
-    print(f"Werewolf used Regen and healed themselves for {heal_amount} HP.")
+def regen(user):  # werewolf
+    user.hp += 15
+    print(f"Werewolf used Regen and healed themselves for 15 HP.")
 
 # creating characters
 CHARACTERS = ["archer","wizard","knight","werewolf"]
 CHAR_ATTR = {
-    "archer": [10, 1, 3, 10, [pierce_shot, evasion], ""],   # [ap, dp, sp, critical_chance, image] # in this game, dp acts like armour
+    "archer": [10, 1, 3, 10, [pierce_shot, evasion], ""],   # [ap, dp, sp, critical_chance, skills, image] # in this game, dp acts like armour
     "wizard": [15, 2, 2, 20, [fireball, ice_barrier], ""],
     "knight": [12, 3, 1, 25, [shield_bash, shield_of_valor], ""],
     "werewolf": [13, 2, 2, 30, [claw_swipe, regen], ""]
@@ -59,14 +44,16 @@ class Character:
         chance = random.randint(1, 100)
         critical_damage = 0
         if chance <= self.crital_chance:
-            critical_damage +=2
+            critical_damage += random.randint(2,5)
+            print(f"{target.jobClass.capitalize()} got hit in the critical point. Received extra damage")
+        # When dp is higher than ap, there would be no damage
         damage = self.ap + critical_damage
-        target.receive_damage(damage)
-        print(f"{self.jobClass} dealt {damage} damge on {target.jobClass}")
+        effective_damage = max(damage - target.dp, 0)
+        target.receive_damage(effective_damage)
+        print(f"{self.jobClass.capitalize()} dealt {effective_damage} damage on {target.jobClass}")
 
     def receive_damage(self, damage):
-        # dp is always lower than than damage in any circumstances
-        self.hp -= damage - self.dp
+        self.hp -= damage
 # inherit and add extra actions for player
 class PlayerCharacter(Character):
     def __init__(self,jobClass):
@@ -76,12 +63,14 @@ class PlayerCharacter(Character):
 
     def defend(self):
         self.dp += 8 #this should only last for 1 round because the enemy's attack will alaways nullify this
-        print(f"{self.jobClass} raised its dp by 8")
+        print(f"{self.jobClass.capitalize()} raised its dp by 8")
 
     def use_skill(self,skill_type,target):
         if skill_type == 0:
             self.mp -= 1
-            self.skill[0](target)
+            damage,skill_name = self.skill[0](target)
+            target.receive_damage(damage)
+            print(f"{self.jobClass.capitalize()} used {skill_name} and dealt {damage} damage")
         else:
             self.mp -= 2
             self.skill[1](self)
