@@ -2,22 +2,22 @@ import random
 
 # offensive skills
 def pierce_shot(target):  # archer 
-    return [20 + target.dp,"Evasion"]
+    return [20 + target.temp_dp,"Evasion"]
 def fireball(target):  # wizard 
-    return [25,"Fireball"]
+    return [30,"Fireball"]
 def shield_bash(target):  # knight
-    return [15,"Shield Bash"]
+    return [23,"Shield Bash"]
 def claw_swipe(target):  # werewolf
-    return [12,"Claw Swipe"]
+    return [23,"Claw Swipe"]
 # defensive skills 
 def evasion(user):  # archer
-    user.dp += 5
+    user.temp_dp += 5
     print(f"Archer used Evasion and increased their DP by 5.")
 def ice_barrier(user):  # wizard 
-    user.dp += 5
+    user.temp_dp += 5
     print(f"Wizard used Ice Barrier and increased their DP by 5.")
 def shield_of_valor(user):  # knight 
-    user.dp += 10
+    user.temp_dp += 10
     print(f"Knight used Shield of Valor and increased their DP by 10.")
 def regen(user):  # werewolf
     user.hp += 15
@@ -48,7 +48,10 @@ class Character:
             print(f"{target.jobClass.capitalize()} got hit in the critical point. Received extra damage")
         # When dp is higher than ap, there would be no damage
         damage = self.ap + critical_damage
-        effective_damage = max(damage - target.dp, 0)
+        armour = target.dp
+        if isinstance(target, PlayerCharacter): # only if the target is player
+            armour = target.temp_dp
+        effective_damage = max(damage - armour, 0)
         target.receive_damage(effective_damage)
         print(f"{self.jobClass.capitalize()} dealt {effective_damage} damage on {target.jobClass}")
 
@@ -60,10 +63,17 @@ class PlayerCharacter(Character):
         super().__init__(jobClass)
         self.hp = 100
         self.mp = 5
+        self.temp_dp = self.dp
+        self.got_attacked = False
 
     def defend(self):
-        self.dp += 8 #this should only last for 1 round because the enemy's attack will alaways nullify this
+        self.temp_dp += 8
         print(f"{self.jobClass.capitalize()} raised its dp by 8")
+    
+    def reset_temp_dp(self):
+        if self.got_attacked:  # reset temp_dp only if the player got attacked
+            self.temp_dp = self.dp
+        self.got_attacked = False
 
     def use_skill(self,skill_type,target):
         if skill_type == 0: # offensive
@@ -128,16 +138,22 @@ while not_finished:
                 enemy_fighter.attack(player_fighter)
                 if player_fighter.hp > 0:
                     player_fighter.attack(enemy_fighter)
+            # after the enemy's attack, dp should be reset
+            player_fighter.got_attacked = True
         # defend
         elif action == "2":
             player_fighter.defend()
             enemy_fighter.attack(player_fighter)
+            # after the enemy's attack, dp should be reset
+            player_fighter.got_attacked = True
         # skill action
         elif action == "3":
             skill_type = int(input("Chose which type of skills you would like to use: 1)Offensive or 2)Defensive: "))
             if player_fighter.sp >= enemy_fighter.sp:
                 player_fighter.use_skill(skill_type-1,enemy_fighter)
                 enemy_fighter.attack(player_fighter)
+                # after the enemy's attack, dp should be reset
+                player_fighter.got_attacked = True
             else:
                 enemy_fighter.attack(player_fighter)
                 player_fighter.use_skill(skill_type-1,enemy_fighter)
@@ -152,7 +168,8 @@ while not_finished:
                     # resetting the round number to 1
                     turn = 1
                     break
-        # ff fighter or enemy fighter's HP drops to 0, remove them from the list
+    
+        # if fighter or enemy fighter's HP drops to 0, remove them from the list
         if player_fighter.hp <= 0:
             player_team.remove(player_fighter)
             if len(player_team) == 1:
@@ -170,5 +187,9 @@ while not_finished:
             print("Congratulation, You won!!")
             not_finished = False
             break
+
+        # reset before the start of a new round if the player got attacked
+        player_fighter.reset_temp_dp()
+
         # line after each round
         print("-"*20)
