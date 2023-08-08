@@ -2,7 +2,7 @@ import random
 
 # offensive skills
 def pierce_shot(target):  # archer 
-    return [20 + target.temp_dp,"Evasion"]
+    return [20 + target.dp,"Evasion"]
 def fireball(target):  # wizard 
     return [30,"Fireball"]
 def shield_bash(target):  # knight
@@ -62,7 +62,7 @@ class PlayerCharacter(Character):
     def __init__(self,jobClass):
         super().__init__(jobClass)
         self.hp = 100
-        self.mp = 5
+        self.mp = 4
         self.temp_dp = self.dp
         self.got_attacked = False
 
@@ -82,7 +82,7 @@ class PlayerCharacter(Character):
             target.receive_damage(damage)
             print(f"{self.jobClass.capitalize()} used {skill_name} and dealt {damage} damage")
         else: # defensive
-            self.mp -= 2 # will only have 2 chance to use to make the game more balenced
+            self.mp -= 1 # will only have 2 chance to use to make the game more balenced
             self.skill[1](self)
 
 # main game flow
@@ -150,13 +150,23 @@ while not_finished:
         elif action == "3":
             skill_type = int(input("Chose which type of skills you would like to use: 1)Offensive or 2)Defensive: "))
             if player_fighter.sp >= enemy_fighter.sp:
-                player_fighter.use_skill(skill_type-1,enemy_fighter)
-                enemy_fighter.attack(player_fighter)
-                # after the enemy's attack, dp should be reset
-                player_fighter.got_attacked = True
+                if player_fighter.mp <= 0:
+                    print("Not enough mana, try other actions")
+                    round -= 1
+                    continue
+                else:
+                    player_fighter.use_skill(skill_type-1,enemy_fighter)
+                    enemy_fighter.attack(player_fighter)
+                    # after the enemy's attack, dp should be reset
+                    player_fighter.got_attacked = True
             else:
                 enemy_fighter.attack(player_fighter)
-                player_fighter.use_skill(skill_type-1,enemy_fighter)
+                if player_fighter.mp <= 0:
+                    print("Not enough mana, try other actions")
+                    round -= 1
+                    continue
+                else:
+                    player_fighter.use_skill(skill_type-1,enemy_fighter)
         # quit or restart
         elif action == "4":
                 choice = input("Do you want to quit (q) or restart (r)? ")
