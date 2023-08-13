@@ -32,7 +32,7 @@ CHAR_ATTR = {
 player_team = []
 enemy_team = []
 round = 0
-game_ended = False
+one_downed = False
 
 class Character:
     def __init__(self,jobClass):
@@ -101,7 +101,8 @@ def select_heroes():
     if len(selected_heroes) == 2:
         for player in selected_heroes:
             player_team.append(PlayerCharacter(player))
-        remaining_options = list(set(CHARACTERS)-set(player_team))
+        remaining_options = list(set(CHARACTERS)-set(selected_heroes))
+        print(remaining_options)
         enemy1 = Character(remaining_options[0])
         enemy2 = Character(remaining_options[1])
         enemy_team = [enemy1,enemy2]
@@ -211,8 +212,11 @@ back_button.grid(row = 5, column = 4)
 
 # Combat Screen
 def create_combat_screen(pteam, eteam):
+    global player, enemy  # Declare player and enemy as global
+
     player = pteam[0]
     enemy = eteam[0]
+    global one_downed
 
     def attack():
         if player.sp >= enemy.sp:
@@ -223,14 +227,12 @@ def create_combat_screen(pteam, eteam):
             enemy.attack(player)
             if player.hp > 0:
                 player.attack(enemy)
-        player.got_attacked = True
-        update_stats()
+        check_hp(player, enemy)
 
     def defend():
         player.defend()
         enemy.attack(player)
-        player.got_attacked = True
-        update_stats()
+        check_hp(player, enemy)
 
     def use_skill1():
         if player.sp >= enemy.sp:
@@ -238,15 +240,16 @@ def create_combat_screen(pteam, eteam):
                 print("Not enough mana, try other actions")
             else:
                 player.use_skill(0,enemy)
-                enemy.attack(player)
-                player.got_attacked = True
+                if player.hp > 0:
+                    enemy.attack(player)
         else:
             enemy.attack(player)
-            if player.mp <= 0:
-                print("Not enough mana, try other actions")
-            else:
-                player.use_skill(0,enemy)
-        update_stats()
+            if player.hp > 0:
+                if player.mp <= 0:
+                    print("Not enough mana, try other actions")
+                else:
+                    player.use_skill(0,enemy)
+        check_hp(player, enemy)
     
     def use_skill2():
         if player.sp >= enemy.sp:
@@ -254,35 +257,45 @@ def create_combat_screen(pteam, eteam):
                 print("Not enough mana, try other actions")
             else:
                 player.use_skill(1,enemy)
-                enemy.attack(player)
-                player.got_attacked = True
+                if enemy.hp > 0:
+                    enemy.attack(player)
         else:
             enemy.attack(player)
-            if player.mp <= 0:
-                print("Not enough mana, try other actions")
-            else:
-                player.use_skill(1,enemy)
-        update_stats()
+            if player.hp > 0:
+                if player.mp <= 0:
+                    print("Not enough mana, try other actions")
+                else:
+                    player.use_skill(1,enemy)
+        check_hp(player, enemy)
 
-    # def check_hp():
-    #     global game_ended
-    #     if player.hp <= 0:
-    #         player_team.remove(player)
-    #         if len(player_team) == 1:
-    #             player = player_team[0]
-    #             print(f"Your {player.jobClass} is defeated! \nYour second fighter {player_team[0].jobClass} came in")
-    #         if len(player_team) == 0:
-    #             game_ended = True
-    #             result_label.config(text="You lost")
-    #     if enemy.hp <= 0:
-    #         enemy_team.remove(enemy)
-    #         if len(enemy_team) == 1:
-    #             enemy = enemy_team[0]
-    #             print(f"Enemy {enemy.jobClass} is defeated! Second fighter {enemy_team[0].jobClass} came in")
-    #         if len(player_team) == 0:
-    #             game_ended = True
-    #             result_label.config(text="You won")
+    def check_hp(p,e):
+        global one_downed, player, enemy, player_team, enemy_team
     
+        print(e.jobClass)
+        update_stats(p,e)
+        
+        if p.hp <= 0 and p in player_team:
+            player_team.remove(p)
+            if len(player_team) == 1:
+                new_hero = player_team[0]
+                player = new_hero
+                one_downed = True
+                update_stats(new_hero,e)
+                print(f"Your second fighter {new_hero.jobClass} came in")
+            if len(player_team) == 0:
+                result_label.config(text="You lost")
+        
+        if e.hp <= 0 and e in enemy_team:
+            enemy_team.remove(e)
+            if len(enemy_team) == 1:
+                new_enemy = enemy_team[0]
+                enemy = new_enemy
+                one_downed = True
+                update_stats(p,new_enemy)
+                print(f"Second fighter {new_enemy.jobClass} came in")
+            if len(enemy_team) == 0:
+                result_label.config(text="You won")
+
     combat_screen = tk.Frame(root)
 
     label = tk.Label(combat_screen, text="Combat")
@@ -297,9 +310,6 @@ def create_combat_screen(pteam, eteam):
     player_image_label.image = player_image  # Store a reference to the PhotoImage
     player_image_label.grid(row=3, column=2, sticky="nsew")
 
-    result_label = tk.Label(combat_screen, text="")
-    result_label.grid(row=2, column=6, sticky="nsew", rowspan="12", columnspan="2")
-    
     enemy_image = Image.open(enemy.image).resize((150, 150))
     enemy_image = ImageTk.PhotoImage(enemy_image)
     enemy_image_label = tk.Label(combat_screen, image=enemy_image)
@@ -338,13 +348,34 @@ def create_combat_screen(pteam, eteam):
     enemy_sp_label = tk.Label(combat_screen, text=f"SP: {enemy.sp}")
     enemy_sp_label.grid(row=10, column=12, sticky="nsew")
 
-    def update_stats():
-        player_hp_label.config(text=f"HP: {player.hp}/100")
-        player_ap_label.config(text=f"AP: {player.ap}")
-        player_mp_label.config(text=f"MP: {player.mp}/4")
-        # result_label.config(text=f""+enemy.name+" Appeared!")
+    def update_stats(p,e):
+        print(f"{p.jobClass} vs {e.jobClass}")
+        player_hp_label.config(text=f"HP: {p.hp}/100")
+        player_mp_label.config(text=f"MP: {p.mp}/4")
+        # result_label.config(text=f""+e.name+" Appeared!")
 
-        enemy_hp_label.config(text=f"HP: {enemy.hp}/150")
+        enemy_hp_label.config(text=f"HP: {e.hp}/150")
+
+        if one_downed:
+            player_image = Image.open(p.image).resize((150, 150))
+            player_image = ImageTk.PhotoImage(player_image)
+            player_image_label = tk.Label(combat_screen, image=player_image)
+            player_image_label.image = player_image  # Store a reference to the PhotoImage
+            player_image_label.grid(row=3, column=2, sticky="nsew")
+
+            enemy_image = Image.open(e.image).resize((150, 150))
+            enemy_image = ImageTk.PhotoImage(enemy_image)
+            enemy_image_label = tk.Label(combat_screen, image=enemy_image)
+            enemy_image_label.image = enemy_image  # Store a reference to the PhotoImage
+            enemy_image_label.grid(row=3, column=12, sticky="nsew")
+
+            player_ap_label.config(text=f"AP: {p.ap}")
+            player_dp_label.config(text=f"DP: {p.dp}")
+            player_sp_label.config(text=f"SP: {p.sp}")
+
+            enemy_ap_label.config(text=f"AP: {e.ap}")
+            enemy_dp_label.config(text=f"DP: {e.dp}")
+            enemy_sp_label.config(text=f"SP: {e.sp}")
 
     # Actions
     attack_button = tk.Button(combat_screen, text="Attack", command=attack)
